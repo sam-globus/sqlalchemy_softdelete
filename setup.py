@@ -8,7 +8,7 @@ setup(
     license = "BSD",
     description = "Soft deletes in SQLAlchemy",
     author = "Mattias Lidman",
-    packages = find_packages("src"),
-    package_dir = {"": "src"},
+    packages = find_packages("lib"),
+    package_dir = {"": "lib"},
     install_requires = ["setuptools"],
 )
