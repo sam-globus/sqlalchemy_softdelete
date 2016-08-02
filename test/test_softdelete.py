@@ -25,6 +25,13 @@ class UserResource(Base):
     user_id = Column(ForeignKey(User.__tablename__ + '.id'), nullable=False)
     user = relationship(User, backref='resources')
 
+class CascadingDeleteResource(Base):
+    __tablename__ = 'cascading_delete_resources'
+    id = Column(Integer, primary_key=True)
+    value = Column(String)
+    user_id = Column(ForeignKey(User.__tablename__ + '.id'))
+    user = relationship(User, backref='cascading_delete_resources', cascade='delete')
+
 class BadSoftDeletable(Base, SoftDeletable):
     __tablename__ = 'badsoftdeletables'
     id = Column(Integer, primary_key=True)
@@ -57,31 +64,46 @@ class TestSoftDelete(unittest.TestCase):
         self.sql_session.delete(self.user)
         self.sql_session.commit()
         self.sql_session.expire_all()
+
+        # ORM query behaves as if the row is deleted
         query = self.sql_session.query(User).filter(User.id == self.user_id)
         self.assertEquals(query.count(), 0)
-        # TODO get it with .execute()
+
+        # User is still in the database and can be gotten with raw SQL
+        query_text = 'SELECT * FROM users WHERE id = {0};'.format(self.user_id)
+        result = self.sql_session.execute(query_text)
+        result = result.first()
+        self.assertTrue(result['_deleted'])
 
     def test_non_nullable_foreign_key_raises_integrity_error(self):
         resource = UserResource(user_id=self.user.id)
         self.sql_session.add(resource)
         self.sql_session.commit()
+        resource_id = resource.id
 
         with self.assertRaises(IntegrityError):
             # Blows up because UserResource.user_id is non-nullable
             self.sql_session.delete(self.user)
             self.sql_session.commit()
 
+        # Transaction was safely rolled back, and the user and resource
+        # still exists
         self.sql_session.expire_all()
         user = self.sql_session.query(User).get(self.user_id)
-        # TODO: make sure not really deleted
+        self.assertEqual(user.resources[0].id, resource_id)
 
     def test_nullable_foreign_key_is_updated(self):
         pass
 
-
+    @unittest.skip("Not supported")
     def test_cascading_deletes(self):
-        # TODO (probably just mark as not implemented)
-        pass
+        cascading_resource = CascadingDeleteResource(user_id=self.user.id)
+        self.sql_session.add(cascading_resource)
+        self.sql_session.commit()
+        self.sql_session.delete(cascading_resource)
+        self.sql_session.commit()
+        # TODO: This ends up fully deleting the user. Figure out how to
+        # either mark it as deleted, or raise a NotImplementedError
 
     def test_cannot_undelete(self):
         pass
