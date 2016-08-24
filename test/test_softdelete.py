@@ -93,6 +93,29 @@ class TestSoftDelete(unittest.TestCase):
         self.assertEqual(user.resources[0].id, resource_id)
 
     def test_nullable_foreign_key_is_updated(self):
+        # TODO
+        pass
+
+    def test_instance__check_deleted(self):
+        # TODO: If a soft-deletable is referenced by another soft-deletable
+        # it must be handled by overriding _check_deleted.
+        pass
+
+    def test_bulk_delete(self):
+        self.sql_session.query(User).delete()
+        self.sql_session.commit()
+        users = self.sql_session.query(User).all()
+        self.assertEquals(len(users), 0)
+        # Check that they're still there and marked deleted
+        query_text = 'SELECT * FROM users'
+        result = self.sql_session.execute(query_text)
+        result = result.first()
+        self.assertTrue(result['_deleted'])
+        # TODO: Implement/test that _check_deletable and _delete calls are called
+        # so that constraints are respected
+
+    def test_bulk_delete_of_non_soft_deletable(self):
+        # TODO
         pass
 
     @unittest.skip("Not supported")

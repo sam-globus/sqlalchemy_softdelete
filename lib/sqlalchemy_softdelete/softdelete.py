@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Boolean
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import persistence
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm.session import Session
 
@@ -27,6 +28,10 @@ class SoftDeleteSession(Session):
 
 class SoftDeleteQuery(Query):
 
+    def __init__(self, entities, session=None):
+        self.entities = entities
+        super(SoftDeleteQuery, self).__init__(entities, session)
+
     def __iter__(self):
         return Query.__iter__(self.check_deleted())
 
@@ -44,6 +49,27 @@ class SoftDeleteQuery(Query):
                 #return self.enable_assertions(False).filter(filt)
                 return self.filter(filt)
         return self
+
+    def delete(self, synchronize_session='evaluate'):
+        """
+        Perform a bulk-delete.
+        """
+        if len(self.entities) != 1:
+            raise NotImplementedError("Bulk delete only supported on single table")
+        if issubclass(self.entities[0], SoftDeletable):
+            values = {'_deleted' : True}
+            update_args = {}
+            update_op = persistence.BulkUpdate.factory(
+                    self, synchronize_session, values, update_args)
+            # TODO: How to _check_deletable here?
+            #instance._check_deletable(self, *args, **kwargs)
+
+            # Good to go -- mark as deleted
+            update_op.exec_()
+            # TODO: How to run _deleted on these?
+        else:
+            # TODO: Test that this works
+            super(SoftDeleteQuery, self).delete(synchronize_session=synchronize_session)
 
 class SoftDeletable(object):
 
