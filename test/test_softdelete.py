@@ -104,17 +104,3 @@ class TestSoftDelete(unittest.TestCase):
         self.sql_session.commit()
         # TODO: This ends up fully deleting the user. Figure out how to
         # either mark it as deleted, or raise a NotImplementedError
-
-    def test_cannot_undelete(self):
-        pass
-        # TODO
-
-    def test_raises_not_implemented(self):
-        """
-        SoftDeletable objects must implement delete()
-        """
-        bad = BadSoftDeletable(id=1)
-        self.sql_session.add(bad)
-        self.sql_session.commit()
-        with self.assertRaises(NotImplementedError):
-            self.sql_session.delete(bad)
