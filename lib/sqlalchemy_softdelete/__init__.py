@@ -1,1 +1,4 @@
-from sqlalchemy_softdelete.softdelete import SoftDeleteSession, SoftDeletable
+from sqlalchemy_softdelete.softdelete import (
+        SoftDeleteSession,
+        SoftDeletable,
+        SoftDeleteIntegrityError)

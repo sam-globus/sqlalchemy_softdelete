@@ -16,7 +16,7 @@ class SoftDeleteSession(Session):
 
     def delete(self, instance, *args, **kwargs):
         if isinstance(instance, SoftDeletable):
-            self._check_deletable(instance, *args, **kwargs)
+            instance._check_deletable(self, *args, **kwargs)
 
             # Good to go -- mark as deleted
             instance._deleted = True
@@ -24,39 +24,6 @@ class SoftDeleteSession(Session):
         else:
             super(SoftDeleteSession, self).delete(instance, *args, **kwargs)
 
-    def _check_deletable(self, instance, *args, **kwargs):
-        # TODO/TBD: This might not actually be feasible...
-        # If A has a foreign key to B, and you try to delete B without first
-        # deleting A (or changing the key) things _should_ explode. However,
-        # the actual DB constraint checker has no idea about this soft delete
-        # business, so if A is also soft-deletable this will _still_ blow up
-        # even if you first (soft) delete it. Options:
-        # - Check foreign key constraints "manually", by way of some magic
-        #   "SELECT ALL ROWS IN ALL TABLES THAT REFERENCE instance" query.
-        #   I don't even know if that's a thing. Ugh.
-        # - Ditch the whole "try a real delete and roll back" approach entirely.
-        #   Ugh. Instead model objects using this would need to add all such
-        #   checks to the SoftDeletable._delete method.
-
-        # Check that instance is deletable in the traditional sense
-        local_transaction = False
-        if not self.transaction:
-            self.begin()
-            local_transaction = True
-        self.begin_nested() # Establishes a savepoint
-        try:
-            self._super.delete(instance, *args, **kwargs)
-            # flush() will be rolled back -- we just want to see if
-            # anything explodes
-            self.flush()
-        except IntegrityError as e:
-            self.rollback() # Rolls back to savepoint
-            if local_transaction:
-                self.rollback()
-            raise e
-        self.rollback() # Rolls back to savepoint
-        if local_transaction:
-            self.rollback()
 
 class SoftDeleteQuery(Query):
 
@@ -87,3 +54,44 @@ class SoftDeletable(object):
         Override this method for any necessary domain-specific side effects.
         """
         pass
+
+    def _check_deletable(self, sql_session, *args, **kwargs):
+        """
+        This method needs to verify that all consistency requirements for
+        deletion are met.
+
+        Normally, this is done by simply attempting to delete the instance in
+        the traditional sense, rolling back the result and re-raising any
+        resulting exceptions.
+
+        However, if this table is referenced as a foreign key in another
+        table that is also soft-deletable this method must be overridden and
+        constraints must be checked manually.
+        """
+        local_transaction = False
+        if not sql_session.transaction:
+            sql_session.begin()
+            local_transaction = True
+        sql_session.begin_nested() # Establishes a savepoint
+        try:
+            sql_session._super.delete(self, *args, **kwargs)
+            # flush() will be rolled back -- we just want to see if
+            # anything explodes
+            sql_session.flush()
+        except IntegrityError as e:
+            sql_session.rollback() # Rolls back to savepoint
+            if local_transaction:
+                sql_session.rollback()
+            raise e
+        sql_session.rollback() # Rolls back to savepoint
+        if local_transaction:
+            sql_session.rollback()
+
+class SoftDeleteIntegrityError(IntegrityError):
+
+    def __init__(self, message):
+        self.detail = []
+        self.message = message
+
+    def __str__(self):
+        return self.message
