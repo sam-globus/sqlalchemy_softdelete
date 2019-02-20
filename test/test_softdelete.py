@@ -10,6 +10,7 @@ from sqlalchemy_softdelete import SoftDeleteSession, SoftDeletable
 
 Base = declarative_base()
 
+
 class User(Base, SoftDeletable):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
@@ -18,6 +19,7 @@ class User(Base, SoftDeletable):
     def _delete(self):
         pass
 
+
 class UserResource(Base):
     __tablename__ = 'user_resources'
     id = Column(Integer, primary_key=True)
@@ -25,12 +27,14 @@ class UserResource(Base):
     user_id = Column(ForeignKey(User.__tablename__ + '.id'), nullable=False)
     user = relationship(User, backref='resources')
 
+
 class CascadingDeleteResource(Base):
     __tablename__ = 'cascading_delete_resources'
     id = Column(Integer, primary_key=True)
     value = Column(String)
     user_id = Column(ForeignKey(User.__tablename__ + '.id'))
     user = relationship(User, backref='cascading_delete_resources', cascade='delete')
+
 
 class BadSoftDeletable(Base, SoftDeletable):
     __tablename__ = 'badsoftdeletables'
@@ -42,7 +46,7 @@ class TestSoftDelete(unittest.TestCase):
     def setUp(self):
         connectionstring = 'postgresql://myapp:dbpass@localhost:15432/test_softdelete'
         db_url = make_url(connectionstring)
-        
+
         engine = create_engine(db_url, echo=True)
         Base.metadata.drop_all(engine)
         Base.metadata.create_all(engine)

@@ -4,12 +4,13 @@ from sqlalchemy.orm import persistence
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm.session import Session
 
+
 class SoftDeleteSession(Session):
 
     def __init__(self, *args, **kwargs):
         self._super = super(SoftDeleteSession, self)
         self._super.__init__(query_cls=SoftDeleteQuery, *args, **kwargs)
-    
+
     def query(self, *args, **kwargs):
         # TODO: Make exclude_deleted really exclude deleted
         #kwargs.setdefault('exclude_deleted', True)
@@ -45,7 +46,7 @@ class SoftDeleteQuery(Query):
         mapper_zero = self._mapper_zero()
         if mapper_zero is not None:
             if issubclass(mapper_zero.class_, SoftDeletable):
-                filt = mapper_zero.class_._deleted == False
+                filt = mapper_zero.class_._deleted == False # noqa
                 #return self.enable_assertions(False).filter(filt)
                 return self.filter(filt)
         return self
@@ -70,6 +71,7 @@ class SoftDeleteQuery(Query):
         else:
             # TODO: Test that this works
             super(SoftDeleteQuery, self).delete(synchronize_session=synchronize_session)
+
 
 class SoftDeletable(object):
 
@@ -112,6 +114,7 @@ class SoftDeletable(object):
         sql_session.rollback() # Rolls back to savepoint
         if local_transaction:
             sql_session.rollback()
+
 
 class SoftDeleteIntegrityError(IntegrityError):
 
