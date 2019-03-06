@@ -9,11 +9,10 @@ class SoftDeleteSession(Session):
 
     def __init__(self, *args, **kwargs):
         self._super = super(SoftDeleteSession, self)
+        kwargs['enable_baked_queries'] = False
         self._super.__init__(query_cls=SoftDeleteQuery, *args, **kwargs)
 
     def query(self, *args, **kwargs):
-        # TODO: Make exclude_deleted really exclude deleted
-        #kwargs.setdefault('exclude_deleted', True)
         return super(SoftDeleteSession, self).query(*args, **kwargs)
 
     def delete(self, instance, *args, **kwargs):
@@ -47,7 +46,6 @@ class SoftDeleteQuery(Query):
         if mapper_zero is not None:
             if issubclass(mapper_zero.class_, SoftDeletable):
                 filt = mapper_zero.class_._deleted == False # noqa
-                #return self.enable_assertions(False).filter(filt)
                 return self.filter(filt)
         return self
 
@@ -92,9 +90,8 @@ class SoftDeletable(object):
         the traditional sense, rolling back the result and re-raising any
         resulting exceptions.
 
-        However, if this table is referenced as a foreign key in another
-        table that is also soft-deletable this method must be overridden and
-        constraints must be checked manually.
+        It may sometimes be necessary to override this method for domain-specific
+        validation.
         """
         local_transaction = False
         if not sql_session.transaction:
