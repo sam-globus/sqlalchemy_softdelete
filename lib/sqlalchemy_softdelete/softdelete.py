@@ -4,15 +4,15 @@ from sqlalchemy.orm import persistence
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm.session import Session
 
+
 class SoftDeleteSession(Session):
 
     def __init__(self, *args, **kwargs):
         self._super = super(SoftDeleteSession, self)
+        kwargs['enable_baked_queries'] = False
         self._super.__init__(query_cls=SoftDeleteQuery, *args, **kwargs)
-    
+
     def query(self, *args, **kwargs):
-        # TODO: Make exclude_deleted really exclude deleted
-        #kwargs.setdefault('exclude_deleted', True)
         return super(SoftDeleteSession, self).query(*args, **kwargs)
 
     def delete(self, instance, *args, **kwargs):
@@ -45,8 +45,7 @@ class SoftDeleteQuery(Query):
         mapper_zero = self._mapper_zero()
         if mapper_zero is not None:
             if issubclass(mapper_zero.class_, SoftDeletable):
-                filt = mapper_zero.class_._deleted == False
-                #return self.enable_assertions(False).filter(filt)
+                filt = mapper_zero.class_._deleted == False # noqa
                 return self.filter(filt)
         return self
 
@@ -71,6 +70,7 @@ class SoftDeleteQuery(Query):
             # TODO: Test that this works
             super(SoftDeleteQuery, self).delete(synchronize_session=synchronize_session)
 
+
 class SoftDeletable(object):
 
     _deleted = Column(Boolean, default=False, nullable=False)
@@ -90,9 +90,8 @@ class SoftDeletable(object):
         the traditional sense, rolling back the result and re-raising any
         resulting exceptions.
 
-        However, if this table is referenced as a foreign key in another
-        table that is also soft-deletable this method must be overridden and
-        constraints must be checked manually.
+        It may sometimes be necessary to override this method for domain-specific
+        validation.
         """
         local_transaction = False
         if not sql_session.transaction:
@@ -112,6 +111,7 @@ class SoftDeletable(object):
         sql_session.rollback() # Rolls back to savepoint
         if local_transaction:
             sql_session.rollback()
+
 
 class SoftDeleteIntegrityError(IntegrityError):
 

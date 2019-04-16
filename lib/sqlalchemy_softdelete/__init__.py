@@ -1,4 +1,4 @@
-from sqlalchemy_softdelete.softdelete import (
+from sqlalchemy_softdelete.softdelete import ( # noqa
         SoftDeleteSession,
         SoftDeletable,
         SoftDeleteIntegrityError)
