@@ -173,6 +173,11 @@ class TestSoftDelete(unittest.TestCase):
         # TODO
         pass
 
+    def test_aggregate_functions(self):
+        self.softdelete_session.delete(self.user)
+        self.softdelete_session.commit()
+        self.assertEqual(self.softdelete_session.query(User).count(), 0)
+
     @unittest.skip("Not supported")
     def test_cascading_deletes(self):
         cascading_resource = CascadingDeleteResource(user_id=self.user.id)
