@@ -16,7 +16,7 @@ class SoftDeleteSession(Session):
 
     def query(self, *entities, **kwargs):
         return super(SoftDeleteSession, self).query(*entities, **kwargs) \
-            if not self.disableSoftDeleteQuery else Query(*entities, self, **kwargs)
+            if not self.disableSoftDeleteQuery else Query(entities, self, **kwargs)
 
     def delete(self, instance, *args, **kwargs):
         if isinstance(instance, SoftDeletable):
