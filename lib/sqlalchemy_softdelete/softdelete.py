@@ -12,11 +12,11 @@ class SoftDeleteSession(Session):
         kwargs['enable_baked_queries'] = False
         self._super.__init__(query_cls=SoftDeleteQuery, *args, **kwargs)
         # Flag allowing you to disable the soft delete query.
-        self.disableSoftDeleteQuery = False
+        self.disable_soft_delete_query = False
 
     def query(self, *entities, **kwargs):
         return super(SoftDeleteSession, self).query(*entities, **kwargs) \
-            if not self.disableSoftDeleteQuery else Query(entities, self, **kwargs)
+            if not self.disable_soft_delete_query else Query(entities, self, **kwargs)
 
     def delete(self, instance, *args, **kwargs):
         if isinstance(instance, SoftDeletable):
