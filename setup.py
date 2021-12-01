@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sqlalchemy_softdelete",
-    version="0.2",
+    version="1.1",
     url="http://github.com/mattias-lidman/sqlalchemy_softdelete",
     license="BSD",
     description="Soft deletes in SQLAlchemy",
